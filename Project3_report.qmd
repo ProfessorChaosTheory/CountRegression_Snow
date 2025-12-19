@@ -1,5 +1,38 @@
 ---
-title: "Project3_report"
+title: "Will it Rain in Fitchburg Tomorrow?"
+author: "Evam Pritchard"
 format: html
+editor: visual
 ---
 
+Introduction
+
+
+
+Data and Methods
+
+
+
+Results
+
+
+
+
+$$
++ 0.04 \cdot \mathrm{N} - 0.12 \cdot \mathrm{NE} + 0.34 \cdot \mathrm{NW} + 0.57 \cdot \mathrm{S}+0.39 \cdot \mathrm{SE} + 0.78 \cdot \mathrm{SW} + 0.60 \cdot \mathrm{W}
+$$
+
+
+
+Discussion and Conclusions
+
+
+Appendix
+
+(0) Summary Statistics:
+
+<center>
+
+{{< embed "project3_analysis.qmd#label_name" >}}
+
+<\center>

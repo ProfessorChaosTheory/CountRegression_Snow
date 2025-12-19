@@ -1,5 +1,617 @@
 ---
 title: "Project3_analysis"
+author: "Evan Pritchard
 format: html
 ---
+
+##Libraries:
+
+```{r}
+library(MASS)
+library(tidyverse)
+library(tidymodels)
+library(poissonreg)
+library(gtsummary)
+```
+
+##Data Collection
+
+```{r}
+
+# Create directory
+dir.create("climate_data", showWarnings = FALSE)
+
+# 1. ONI (El Niño/La Niña) - Long format with seasons
+oni_url <- "https://www.cpc.ncep.noaa.gov/data/indices/oni.ascii.txt"
+
+oni_raw <- read_table(oni_url, skip = 1, show_col_types = FALSE, 
+                      col_names = c("SEAS", "YR", "TOTAL", "ANOM"))
+
+# We want OND (Oct-Nov-Dec) for each year
+oni_clean <- oni_raw |>
+  filter(SEAS == "OND", YR >= 1950) |>
+  mutate(
+    oni_oct_dec = ANOM,
+    el_nino_strength = ifelse(oni_oct_dec > 0, oni_oct_dec, 0),
+    la_nina_strength = ifelse(oni_oct_dec < 0, abs(oni_oct_dec), 0)
+  ) |>
+  select(year = YR, oni_oct_dec, el_nino_strength, la_nina_strength)
+
+write_csv(oni_clean, "climate_data/oni_1950_present.csv")
+cat("ONI data saved:", nrow(oni_clean), "years\n")
+
+# 2. NAO (North Atlantic Oscillation) - Year, Month, Value format
+nao_url <- "https://www.cpc.ncep.noaa.gov/products/precip/CWlink/pna/norm.nao.monthly.b5001.current.ascii"
+nao_raw <- read_table(nao_url, skip = 1, show_col_types = FALSE,
+                      col_names = c("Year", "Month", "NAO"))
+
+nao_clean <- nao_raw |>
+  filter(Year >= 1950, Month %in% c(10, 11, 12)) |>
+  group_by(Year) |>
+  summarise(nao_oct_dec = mean(NAO, na.rm = TRUE)) |>
+  rename(year = Year)
+
+write_csv(nao_clean, "climate_data/nao_1950_present.csv")
+cat("NAO data saved:", nrow(nao_clean), "years\n")
+
+# 3. AO (Arctic Oscillation) - Year, Month, Value format
+ao_url <- "https://www.cpc.ncep.noaa.gov/products/precip/CWlink/daily_ao_index/monthly.ao.index.b50.current.ascii"
+ao_raw <- read_table(ao_url, skip = 1, show_col_types = FALSE,
+                     col_names = c("Year", "Month", "AO"))
+
+ao_clean <- ao_raw |>
+  filter(Year >= 1950, Month %in% c(10, 11, 12)) |>
+  group_by(Year) |>
+  summarise(ao_oct_dec = mean(AO, na.rm = TRUE)) |>
+  rename(year = Year)
+
+write_csv(ao_clean, "climate_data/ao_1950_present.csv")
+cat("AO data saved:", nrow(ao_clean), "years\n")
+
+# 4. PNA (Pacific/North American Pattern) - Year, Month, Value format
+pna_url <- "https://www.cpc.ncep.noaa.gov/products/precip/CWlink/pna/norm.pna.monthly.b5001.current.ascii"
+pna_raw <- read_table(pna_url, skip = 1, show_col_types = FALSE,
+                      col_names = c("Year", "Month", "PNA"))
+
+pna_clean <- pna_raw |>
+  filter(Year >= 1950, Month %in% c(10, 11, 12)) |>
+  group_by(Year) |>
+  summarise(pna_oct_dec = mean(PNA, na.rm = TRUE)) |>
+  rename(year = Year)
+
+write_csv(pna_clean, "climate_data/pna_1950_present.csv")
+cat("PNA data saved:", nrow(pna_clean), "years\n")
+
+# Combine all indices
+all_indices <- oni_clean |>
+  left_join(nao_clean, by = "year") |>
+  left_join(ao_clean, by = "year") |>
+  left_join(pna_clean, by = "year")
+
+write_csv(all_indices, "climate_data/climate_data.csv")
+cat("\nCombined indices saved:", nrow(all_indices), "years\n")
+
+```
+##Data Wrangling:
+
+```{r}
+# Read in datasets
+FitchburgDailyData <- read_csv("FitchburgDailyData.csv")
+climate_indices <- read_csv("climate_data.csv")
+
+# Step 1: Create pre-winter and early winter summaries (May 1 - December 21)
+pre_winter_data <- FitchburgDailyData |>
+  mutate(
+    date = mdy(date),
+    month = month(date),
+    day = day(date),
+    year = year(date)
+  ) |>
+  # Filter for May through December 21
+  filter(
+    (month >= 5 & month <= 11) | 
+    (month == 12 & day <= 21)
+  ) |>
+  group_by(year) |>
+  summarise(
+    # Total rainfall May-Dec 21
+    total_rainfall_preseason = sum(rain_sum_inch, na.rm = TRUE),
+    
+    # Total snowfall May-Dec 21 (unusual but might happen)
+    total_snowfall_preseason = sum(snowfall_sum_inch, na.rm = TRUE),
+    
+    # Average temperature May-Dec 21
+    avg_temp_preseason = mean(temperature_mean_F, na.rm = TRUE),
+    
+    # Total precipitation May-Dec 21
+    total_precip_preseason = sum(precipitation_sum_inch, na.rm = TRUE),
+    
+    # Temperature range
+    temp_range_preseason = mean(temperature_max_F - temperature_min_F, na.rm = TRUE)
+  )
+
+# Step 2: November and December trends specifically
+november_data <- FitchburgDailyData |>
+  mutate(
+    date = mdy(date),
+    month = month(date),
+    day = day(date),
+    year = year(date)
+  ) |>
+  filter(month == 11) |>
+  group_by(year) |>
+  summarise(
+    nov_avg_temp = mean(temperature_mean_F, na.rm = TRUE),
+    nov_total_precip = sum(precipitation_sum_inch, na.rm = TRUE),
+    nov_total_snow = sum(snowfall_sum_inch, na.rm = TRUE),
+    nov_temp_trend = mean(temperature_mean_F[day > 23], na.rm = TRUE) - 
+                     mean(temperature_mean_F[day <= 7], na.rm = TRUE)
+  ) 
+
+december_data <- FitchburgDailyData |>
+  mutate(
+    date = mdy(date),
+    month = month(date),
+    day = day(date),
+    year = year(date)
+  )|>
+  filter(month == 12, day <= 21) |>
+  group_by(year) |>
+  summarise(
+    dec_avg_temp = mean(temperature_mean_F, na.rm = TRUE),
+    dec_total_precip = sum(precipitation_sum_inch, na.rm = TRUE),
+    dec_total_snow = sum(snowfall_sum_inch, na.rm = TRUE),
+    # Temperature trend in early December (late Dec vs early Dec)
+    dec_temp_trend = mean(temperature_mean_F[day > 14], na.rm = TRUE) - 
+                     mean(temperature_mean_F[day <= 7], na.rm = TRUE),
+    dec_days_with_snow = sum(snowfall_sum_inch > 0, na.rm = TRUE)
+  )
+
+# Combine pre-winter data
+pre_winter_2 <- pre_winter_data |>
+  left_join(november_data, by = "year")
+pre_winter_combined <- pre_winter_2 |>  
+  left_join(december_data, by = "year")
+
+# Step 3: Count snow days for remainder of winter (December 22 - April 30)
+winter_snow_days <- FitchburgDailyData |>
+  mutate(
+    date = mdy(date),
+    month = month(date),
+    day = day(date),
+    year = year(date)
+  ) |>
+  # Create Winter season and label
+  filter(
+    (month == 12 & day >= 22) | 
+    (month >= 1 & month <= 4)
+  ) |>
+  mutate(winter_year = ifelse(month == 12, year, year - 1)) |>
+
+  # Define snow day: snowfall > 4" OR apparent temp mimimum < -30°F.
+  mutate(
+    is_snow_day = ifelse(snowfall_sum_inch > 4 | apparent_temperature_min_F < -30, 1, 0)
+  ) |>
+ 
+  group_by(winter_year) |>
+  summarise(
+    snow_days_count = sum(is_snow_day, na.rm = TRUE),  # Count snow days per winter season
+    total_snowfall_winter = sum(snowfall_sum_inch, na.rm = TRUE),
+    avg_winter_temp = mean(temperature_mean_F, na.rm = TRUE),
+    min_winter_temp = min(temperature_min_F, na.rm = TRUE),
+    total_winter_precip = sum(precipitation_sum_inch, na.rm = TRUE),
+    days_with_snow = sum(snowfall_sum_inch > 0, na.rm = TRUE)
+  )
+
+# Step 4: Combine everything
+snow_model_data <- pre_winter_combined |>
+  left_join(climate_indices, by = "year") |>
+  left_join(winter_snow_days, by = c("year" = "winter_year")) |>
+  filter(!is.na(oni_oct_dec) & !is.na(snow_days_count)) |>
+  mutate(winter_season = paste0(year, "-", year + 1))  # Create winter season label
+
+# Step 5: Split into train and test
+#   Test set: every 5th year
+#   Train set: all other years
+snow_model_data <- snow_model_data |>
+  filter(year != 1950) |>
+  mutate(is_test = (year %% 5 == 0))
+
+train <- snow_model_data |>
+  filter(!is_test) |>
+  select(-is_test)
+
+test <- snow_model_data |>
+  filter(is_test) |>
+  select(-is_test)
+
+# Save the datasets
+write_csv(snow_model_data, "snow_days.csv")
+write_csv(train, "snow_days_train.csv")
+write_csv(test, "snow_days_test.csv")
+
+cat("\nDatasets saved successfully!\n")
+```
+
+```{r}
+
+```
+
+
+##Data Interpretation:
+
+```{r}
+#|label: Read Datasets
+
+snow_days <- read_csv("snow_days.csv")
+train <- read_csv("snow_days_train.csv")
+test <- read_csv("snow_days_test.csv")
+
+```
+
+```{r}
+
+summary(snow_days$snow_days_count)
+
+table(snow_days$snow_days_count)
+
+summary(snow_days)
+
+```
+
+```{r}
+#|label: explore snow days per season
+# #| echo: false
+
+
+ggplot(snow_days |> select(c(year, snow_days_count)), 
+       aes(x = snow_days_count)) +
+  geom_histogram(binwidth = 1, fill = "blue", color = "black") +
+  labs(title = "Number of Snow Days per Season in Fitchburg",
+       x = "Count of Snow Days",
+       y = "Frequency")
+```
+
+```{r}
+ggplot(snow_days, aes(x = year, y = snow_days_count)) +
+  geom_bar(stat = "identity", fill = "green") +
+  theme_minimal() + # Use a clean theme
+  labs(title = "Snow Days per Year", x = "Year", y = "Number of Snow Days")
+```
+
+
+
+
+```{r}
+snow_days |>
+  select(year, snow_days_count, oni_oct_dec, ao_oct_dec, pna_oct_dec) |>
+  pivot_longer(cols = c(oni_oct_dec, ao_oct_dec, pna_oct_dec),
+               names_to = "climate_index",
+               values_to = "index_value") |>
+  mutate(climate_index = case_when(
+    climate_index == "oni_oct_dec" ~ "ONI (El Niño/La Niña)",
+    climate_index == "ao_oct_dec" ~ "Arctic Oscillation (AO)",
+    climate_index == "pna_oct_dec" ~ "Pacific/North American (PNA)"
+  )) |>
+  ggplot(aes(x = index_value, y = snow_days_count)) +
+  geom_point(alpha = 0.6, color = "red") +
+  geom_smooth(method = "lm", se = TRUE, color = "green") +
+  facet_wrap(~climate_index) +
+  labs(title = "Snow Days vs Climate Indices (Year End Average)",
+       subtitle = "Fitchburg, MA (1951-2024)",
+       x = "Climate Index Value",
+       y = "Number of Snow Days") 
+
+```
+
+
+```{r}
+snow_days |>
+  select(year, snow_days_count, starts_with("nov_")) |>
+  pivot_longer(cols = starts_with("nov_"),
+               names_to = "november_metric",
+               values_to = "metric_value") |>
+  mutate(november_metric = case_when(
+    november_metric == "nov_avg_temp" ~ "November Avg Temperature (°F)",
+    november_metric == "nov_total_precip" ~ "November Total Precipitation (in)",
+    november_metric == "nov_total_snow" ~ "November Total Snowfall (in)",
+    november_metric == "nov_temp_trend" ~ "November Temperature Trend (°F)"
+  )) |>
+  ggplot(aes(x = metric_value, y = snow_days_count)) +
+  geom_point(alpha = 0.6, color = "darkblue") +
+  geom_smooth(method = "lm", se = TRUE, color = "red") +
+  facet_wrap(~november_metric, scales = "free_x", nrow = 2) +
+  labs(title = "Snow Days vs November Metrics",
+       subtitle = "Fitchburg, MA (1951-2024)",
+       x = "November Metric Value",
+       y = "Number of Snow Days") 
+```
+
+
+```{r}
+snow_days |>
+  select(year, snow_days_count, starts_with("dec_")) |>
+  select(-dec_total_snow) |>
+  pivot_longer(cols = starts_with("dec_"),
+               names_to = "december_metric",
+               values_to = "metric_value") |>
+  mutate(december_metric = case_when(
+    december_metric == "dec_avg_temp" ~ "December Avg Temperature (°F)",
+    december_metric == "dec_total_precip" ~ "December Total Precipitation (in)",
+    december_metric == "dec_temp_trend" ~ "December Temperature Trend (°F)",
+    december_metric == "dec_days_with_snow" ~ "December Days with Snow"
+  )) |>
+  ggplot(aes(x = metric_value, y = snow_days_count)) +
+  geom_point(alpha = 0.6, color = "navy") +
+  geom_smooth(method = "lm", se = TRUE, color = "red") +
+  facet_wrap(~december_metric, scales = "free_x", nrow = 2) +
+  labs(title = "Snow Days vs December Metrics (Dec 1-21)",
+       subtitle = "Fitchburg, MA (1951-2024)",
+       x = "December Metric Value",
+       y = "Number of Snow Days")
+```
+
+
+```{r}
+
+
+
+snow_days |>
+  select(year, snow_days_count, 
+         total_rainfall_preseason, total_snowfall_preseason, 
+         total_precip_preseason, temp_range_preseason) |>
+  # Create bins for snow_days_count to use as categories
+  mutate(snow_days_category = cut(snow_days_count, 
+                                   breaks = c(-Inf, 2, 4, Inf),
+                                   labels = c("0-2 days", "3-4 days", 
+                                             "5+ days"))) |>
+  pivot_longer(cols = c(total_rainfall_preseason, total_snowfall_preseason,
+                        total_precip_preseason, temp_range_preseason),
+               names_to = "preseason_metric",
+               values_to = "metric_value") |>
+  mutate(preseason_metric = case_when(
+    preseason_metric == "total_rainfall_preseason" ~ "Total Rainfall (May-Dec 21)",
+    preseason_metric == "total_snowfall_preseason" ~ "Total Snowfall (May-Dec 21)",
+    preseason_metric == "total_precip_preseason" ~ "Total Precipitation (May-Dec 21)",
+    preseason_metric == "temp_range_preseason" ~ "Avg Temperature Range (May-Dec 21)"
+  )) |>
+  ggplot(aes(x = metric_value, fill = snow_days_category)) +
+  geom_density(alpha = 0.5) +
+  facet_wrap(~preseason_metric, scales = "free") +
+  scale_fill_brewer(palette = "Set1") +
+  labs(title = "Pre-Season Metrics by Snow Day Count",
+       subtitle = "Fitchburg, MA (1951-2024)",
+       x = "Metric Value",
+       y = "Density",
+       fill = "Snow Days")
+```
+
+```{r}
+#| label: first Poisson regression model
+
+poisson_spec <- poisson_reg() |>
+  set_engine("glm")
+
+model0 <- poisson_spec |>
+  fit(snow_days_count ~ ao_oct_dec, family = poisson,
+      data = snow_days)
+
+summary(model0$fit)
+```
+
+
+
+```{r}
+#| label: first Poisson regression model
+
+poisson_spec <- poisson_reg() |>
+  set_engine("glm")
+
+model1 <- poisson_spec |>
+  fit(snow_days_count ~ ao_oct_dec * dec_avg_temp, family = poisson,
+      data = snow_days)
+
+summary(model1$fit)
+
+```
+
+
+```{r}
+#| label: Working Poisson regression model
+
+poisson_spec <- poisson_reg() |>
+  set_engine("glm")
+
+model2 <- poisson_spec |>
+  fit(snow_days_count ~ dec_avg_temp * ao_oct_dec +  total_snowfall_preseason + nov_total_snow + nov_avg_temp + temp_range_preseason  + oni_oct_dec, family = poisson, data =          snow_days)
+
+summary(model2$fit)
+```
+
+
+```{r}
+#| label: drop-in-deviance test
+
+dev1 <- glance(model0)$deviance
+dev2 <- glance(model1)$deviance
+test_stat <- dev1 - dev2
+1 - pchisq(test_stat, 2) #degrees of freedom is the number of new terms
+```
+```{r}
+#| label: drop-in-deviance test 2
+
+dev1 <- glance(model0)$deviance
+dev2 <- glance(model2)$deviance
+test_stat <- dev1 - dev2
+1 - pchisq(test_stat, 6) #degrees of freedom is the number of new terms
+```
+
+```{r}
+#| label: NB model
+
+model1_nb <- glm.nb(formula = snow_days_count ~ dec_avg_temp * ao_oct_dec +  total_snowfall_preseason + nov_total_snow + nov_avg_temp + temp_range_preseason  + oni_oct_dec, data = snow_days)
+
+summary(model1_nb)
+```
+```{r}
+mean(snow_days$snow_days_count)
+var(snow_days$snow_days_count)
+```
+
+```{r}
+#| label: metrics
+
+evaluate_count_model <- function(model, test_data, model_name) {
+  
+  preds <- predict(model, new_data = test_data) |>
+    bind_cols(test_data |> select(snow_days_count)) |>
+    rename(predicted = .pred, actual = snow_days_count)
+  
+  mae <- mean(abs(preds$actual - preds$predicted), na.rm = TRUE)
+  rmse <- sqrt(mean((preds$actual - preds$predicted)^2, na.rm = TRUE))
+  
+  glm_model <- extract_fit_engine(model)
+  
+  null_deviance <- glm_model$null.deviance
+  residual_deviance <- glm_model$deviance
+  pseudo_r2 <- 1 - (residual_deviance / null_deviance)
+  
+  # AIC
+  aic <- glance(model)$AIC
+  
+  results <- tibble(
+    model = model_name,
+    MAE = mae,
+    RMSE = rmse,
+    Pseudo_R2 = pseudo_r2,
+    AIC = aic,
+    Null_Deviance = null_deviance,
+    Residual_Deviance = residual_deviance
+  )
+  
+  preds <- preds |>
+    mutate(residual = actual - predicted)
+  
+  # Print summary
+  cat("\n=== Model:", model_name, "===\n")
+  cat("MAE (Mean Absolute Error):", round(mae, 2), "snow days\n")
+  cat("RMSE (Root Mean Squared Error):", round(rmse, 2), "snow days\n")
+  cat("Pseudo R-squared:", round(pseudo_r2, 3), "\n")
+  cat("AIC:", round(aic, 2), "\n\n")
+  
+  list(metrics = results, predictions = preds)
+}
+ 
+# Evaluate model1 on test set
+results <- evaluate_count_model(model1, snow_days, "Poisson: AO * Dec Temp")
+
+# View the metrics
+results$metrics
+
+# View predictions
+head(results$predictions, 20)
+
+# Plot actual vs predicted
+ggplot(results$predictions, aes(x = actual, y = predicted)) +
+  geom_point(alpha = 0.6, size = 3, color = "steelblue") +
+  geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed", size = 1) +
+  labs(title = "Actual vs Predicted Snow Days (Test Set)",
+       subtitle = "Points should fall on red line for perfect predictions",
+       x = "Actual Snow Days",
+       y = "Predicted Snow Days")
+
+# Plot residuals
+ggplot(results$predictions, aes(x = predicted, y = residual)) +
+  geom_point(alpha = 0.6, color = "steelblue") +
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
+  geom_smooth(se = TRUE, color = "blue") +
+  labs(title = "Residual Plot",
+       subtitle = "Residuals should be randomly scattered around zero",
+       x = "Predicted Snow Days",
+       y = "Residuals (Actual - Predicted)")
+
+# Distribution of residuals
+ggplot(results$predictions, aes(x = residual)) +
+  geom_histogram(binwidth = 1, fill = "steelblue", color = "black") +
+  geom_vline(xintercept = 0, color = "red", linetype = "dashed", size = 1) +
+  labs(title = "Distribution of Residuals",
+       x = "Residual (Actual - Predicted)",
+       y = "Count")
+```
+
+```{r}
+ggplot(results$predictions, aes(x = actual, y = predicted)) +
+  geom_point(alpha = 0.6, size = 3, color = "green") +
+  geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed", size = 1) +
+  geom_smooth(method = "lm", se = TRUE, color = "blue", alpha = 0.2) +
+  labs(title = "Predicted vs Actual Snow Days",
+       subtitle = paste0("MAE = ", round(results$metrics$MAE, 2), 
+                        " | RMSE = ", round(results$metrics$RMSE, 2),
+                        " | Pseudo R² = ", round(results$metrics$Pseudo_R2, 3)),
+       x = "Actual Snow Days",
+       y = "Predicted Snow Days")
+```
+
+
+
+
+```{r}
+# Get correlations with snow_days_count
+correlations <- snow_days |>
+  select(where(is.numeric), -year, -is_test) |>  # Remove non-predictive variables
+  cor(use = "pairwise.complete.obs") |>
+  as.data.frame() |>
+  rownames_to_column(var = "variable") |>
+  select(variable, snow_days_count) |>
+  filter(variable != "snow_days_count") |>  # Remove self-correlation
+  arrange(desc(abs(snow_days_count))) |>  # Sort by absolute value (strength)
+  mutate(abs_correlation = abs(snow_days_count))
+
+# Display top correlations
+print(correlations, n = 30)
+
+# Visualize top 15
+correlations |>
+  slice_head(n = 15) |>
+  ggplot(aes(x = reorder(variable, snow_days_count), y = snow_days_count)) +
+  geom_col(aes(fill = snow_days_count > 0), show.legend = FALSE) +
+  scale_fill_manual(values = c("TRUE" = "steelblue", "FALSE" = "coral")) +
+  coord_flip() +
+  labs(title = "Top 15 Correlations with Snow Days Count",
+       x = "Variable",
+       y = "Correlation Coefficient") +
+  geom_hline(yintercept = 0, linetype = "dashed")
+```
+
+
+
+```{r}
+# Unconstrained model
+model_unconstrained <- poisson_reg() |>
+  set_engine("glm") |>
+  fit(snow_days_count ~ total_snowfall_winter + days_with_snow + 
+      total_winter_precip + dec_days_with_snow + 
+      avg_winter_temp + min_winter_temp +
+      total_snowfall_preseason + nov_total_snow + ao_oct_dec * oni_oct_dec,
+      data = snow_days)
+
+results_unconstrained <- evaluate_count_model(model_unconstrained, snow_days, 
+                                              "Unconstrained Model (Uses Winter Data)")
+
+```
+
+```{r}
+ ggplot(results_unconstrained$predictions, aes(x = actual, y = predicted)) +
+  geom_point(alpha = 0.6, size = 3, color = "green") +
+  geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed", size = 1) +
+  geom_smooth(method = "lm", se = TRUE, color = "blue", alpha = 0.2) +
+  labs(title = "Predicted vs Actual Snow Days",
+       subtitle = paste0("MAE = ", round(results_unconstrained$metrics$MAE, 2), 
+                        " | RMSE = ", round(results_unconstrained$metrics$RMSE, 2),
+                        " | Pseudo R² = ", round(results_unconstrained$metrics$Pseudo_R2, 3)),
+       x = "Actual Snow Days",
+       y = "Predicted Snow Days")
+
+```
+
 
