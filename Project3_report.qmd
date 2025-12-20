@@ -1,38 +1,225 @@
 ---
-title: "Will it Rain in Fitchburg Tomorrow?"
-author: "Evam Pritchard"
+title: "How Many Snow Days will we have in Fitchburg this Winter?"
+author: "Evan Pritchard"
 format: html
 editor: visual
 ---
 
-Introduction
+# Introduction
 
+The weather has a direct impact on our daily lives. In no season is this true more than the winter. Snowstorms can disrupt our days and shut down society in ways usually reserved for "disasters." But these powerful and disruptive snowstorms aren't unexpected disasters here in New England, they come around a few times a year. Snow days carry significant economic, social, and logistical consequences for communities across New England. Municipalities need to be prepared to clear away these storms. Schools have to know how many extra days to build into their yearly calendars. Families need to prepare for the inevitable days of chaos when the school buses stay parked. When schools close due to heavy snowfall or dangerous winter conditions, the ripple effects extend far beyond the classroom. Parents must arrange childcare or miss work; this impacts productivity and household income. School districts face difficult decisions balancing student safety against instructional time and standardized testing requirements. For many families, particularly those relying on school meal programs, snow days can mean food insecurity (National Oceanic and Atmospheric Administration, Weather Prediction Center, 2024). Beyond the hearth and home, emergency services face increased demand precisely when road conditions make response most difficult. Municipalities must allocate substantial resources to snow removal, often exhausting winter maintenance budgets during particularly severe seasons. The cascading effects of a single major snowstorm can cost a region millions of dollars in lost productivity, emergency response, and infrastructure damage (Karvetski et al., 2009). Advance warning allows municipalities to pre-position equipment and personnel, stock road salt and sand supplies, and establish emergency shelters. Residents can stock essential supplies, adjust travel plans, and ensure vulnerable populations receive necessary assistance. For healthcare facilities, utilities, and other critical infrastructure, advance notice of severe winter weather enables contingency planning that can literally save lives.
 
+Beyond immediate practical concerns, the broader context of climate change adds urgency to understanding winter weather patterns. While Arctic amplification and shifting atmospheric circulation patterns may alter the frequency and intensity of winter storms, the relationship between climate change and regional snowfall remains complex and sometimes counterintuitive (Cohen et al., 2020). Some regions may experience more intense individual snow events even as overall seasonal snowfall declines. It is growing increasingly difficult to predict as the atmospheric teleconnection patterns that govern winter weather show evidence of long-term changes (Irisarri et al., 2026). Statistical models that can predict seasonal snow day frequency can provide a valuable tool for understanding how these patterns are evolving and preparing communities for future winters. Statistical analysis of extreme winter weather events has demonstrated that nor'easter snowstorms, which is the primary driver of significant snowfall in the Northeast, follow a Poisson distribution in their rate of occurrence, making count regression an appropriate modeling framework for predicting seasonal snowfall impacts (Karvetski et al., 2009). In this study, I attempt to address these challenges by developing a count regression model to predict the number of snow days resulting in school closings in Fitchburg, Massachusetts, using only information available through December 21st of the preceding year. By identifying the meteorological factors and climate indices most strongly associated with subsequent winter snowfall, this research aims to provide actionable seasonal forecasting capability that can inform planning decisions across educational, municipal, and emergency management sectors. Understanding what drives winter-to-winter variability in snow days enables more effective resource allocation, improved emergency preparedness, and better-informed decision-making for the communities that depend on accurate winter weather forecasting.
 
-Data and Methods
+# Data and Methods
 
+Daily weather data for the Fitchburg area was collected from OpenMeteo.com, while climate indices were sourced from the National Oceanic and Atmospheric Association's website. Data was then averaged over the October through December time frame, and snowfall totals were collected for the winter season ranging from December $21^{st}$ through the first day of May of the following year. Data was compiled into one dataframe, with one data point for each year from 1951 to 2025, totalling 74 years. Variables of interest were wrangled from raw data for ease of model application. The dataset was split into a training set (80%) and a test set (20%), but such a split created a set that was not representative of the total dataset. It was determined that to obtain any meaningful interpretations, the entire dataset would need to be used for training purposes.
 
+Daily data that was investigated included:
 
-Results
++---------------------+--------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Variable            | Range in Dataset   | Description                                                                                                                                                   |
++=====================+====================+===============================================================================================================================================================+
+| Snow Day Count      | 0 to 7             | Number of days between December 21^st^ and May 1^st^ where there is at least 4 inches of snow OR the minimum apparent temperature is below -20°F for the day. |
+|                     |                    |                                                                                                                                                               |
+| (Response Variable) | Mean: 2.54         |                                                                                                                                                               |
++---------------------+--------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Avg Temp Range      | 14.09°F to 18.55°F | Average difference between daily maximum and minimum temperatures (°F) between May 1^st^ and December 21^st^.                                                 |
+|                     |                    |                                                                                                                                                               |
+|                     | Mean: 16.07°F      |                                                                                                                                                               |
++---------------------+--------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Total Precipitation | 15.94in to 42.52in | Total liquid water equivalent of precipitation, in inches, falling between May 1^st^ and December 21^st^.                                                     |
+|                     |                    |                                                                                                                                                               |
+|                     | Mean: 29.33in      |                                                                                                                                                               |
++---------------------+--------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
+Average temperature for out of winter season was not considered due to its low variability and near constant value across all years explored. Not much could be extrapolated from the preseason daily data. An attempt was made to analyze daily weater pattern data closer to the season. November metrics investigated were:
 
++------------------+--------------------+------------------------------------------------------------------------------------------------------------------+
+| Variable         | Range in Dataset   | Description                                                                                                      |
++==================+====================+==================================================================================================================+
+| nov_avg_temp     | 35.21°F to 46.02°F | Average daily temperature, in °F for the month of November.                                                      |
+|                  |                    |                                                                                                                  |
+|                  | Mean: 40.78°F      |                                                                                                                  |
++------------------+--------------------+------------------------------------------------------------------------------------------------------------------+
+| nov_temp_trend   | -21.07°F to 6.97°F | Difference between the average daily temperature at the beginning of November and at the end of November, in °F. |
+|                  |                    |                                                                                                                  |
+|                  | Mean: -8.81°F      |                                                                                                                  |
++------------------+--------------------+------------------------------------------------------------------------------------------------------------------+
+| nov_total_precip | 0.94in to 9.36in   | Total liquid equivalent of precipitation, in inches, for the month of November.                                  |
+|                  |                    |                                                                                                                  |
+|                  | Mean: 3.80in       |                                                                                                                  |
++------------------+--------------------+------------------------------------------------------------------------------------------------------------------+
+| nov_total_snow   | 0.00in to 15.68in  | Total snowfall, in inches, for the month of November.                                                            |
+|                  |                    |                                                                                                                  |
+|                  | Mean: 2.83in       |                                                                                                                  |
++------------------+--------------------+------------------------------------------------------------------------------------------------------------------+
 
+: And similarly, these December Meterics were explored:
+
++--------------------+---------------------+------------------------------------------------------------------------------------------------------------------+
+| Variable           | Range in Dataset    | Description                                                                                                      |
++====================+=====================+==================================================================================================================+
+| dec_avg_temp       | 16.69°F to 41.02°F  | Average daily temperature, in °F, for the month of December                                                      |
+|                    |                     |                                                                                                                  |
+|                    | Mean: 30.62°F       |                                                                                                                  |
++--------------------+---------------------+------------------------------------------------------------------------------------------------------------------+
+| dec_temp_trend     | -24.96°F to 10.36°F | Difference between the average daily temperature at the beginning of December and at the end of November, in °F. |
+|                    |                     |                                                                                                                  |
+|                    | Mean: -6.00°F       |                                                                                                                  |
++--------------------+---------------------+------------------------------------------------------------------------------------------------------------------+
+| dec_total_precip   | 0.26in to 6.26in    | Total liquid equivalent of precipitation, in inches, for the month of December.                                  |
+|                    |                     |                                                                                                                  |
+|                    | Mean: 2.95in        |                                                                                                                  |
++--------------------+---------------------+------------------------------------------------------------------------------------------------------------------+
+| dec_days_with_snow | 0 to 13             | Number of days in December where any measurable amount of snow was recorded.                                     |
+|                    |                     |                                                                                                                  |
+|                    | Mean: 6.31          |                                                                                                                  |
++--------------------+---------------------+------------------------------------------------------------------------------------------------------------------+
+
+|     |
+|-----|
+|     |
+
+Four major weather indices were explored. A summary of each can be found below:
+
++-----------------------------------------------------+------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| Climate Index                                       | Range in Dataset | Description                                                                                                                           |
++=====================================================+==================+=======================================================================================================================================+
+| Oceanic Niño Index (ONI)                            | -1.95 to 2.57    | Three month running mean of the departure from average of sea surface temperatures in the East Central Pacific Ocean, measured in °C. |
+|                                                     |                  |                                                                                                                                       |
+|                                                     | Mean: 0.037      | \>+0.5°C = El Niño; \<-0.5°C = La Niña                                                                                                |
+|                                                     |                  |                                                                                                                                       |
+|                                                     |                  | El Niño is associated with warmer, drier winters in New England.                                                                      |
+|                                                     |                  |                                                                                                                                       |
+|                                                     |                  | La Niña is associated with snowier, more dynamic winters in New England                                                               |
++-----------------------------------------------------+------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| Pacific North American Teleconnection Pattern (PNA) | -1.34 to 1.61    | Links atmospheric circulation anomalies over the North Pacific Ocean with weather patterns across North America.                      |
+|                                                     |                  |                                                                                                                                       |
+|                                                     | Mean: 0.050      | Positive phases associated with colder/snowier New England winters.                                                                   |
++-----------------------------------------------------+------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| Arctic Oscillation (AO)                             | -1.5 to 1.49     | Describes the atmospheric circulation pattern over the Arctic; sometimes called the polar vortex.                                     |
+|                                                     |                  |                                                                                                                                       |
+|                                                     | Mean: -0.070     | Negative Phases associated with snowier winters in New England.                                                                       |
++-----------------------------------------------------+------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| North Atlantic Oscillation (NAO)                    | -1.54 to 1.61    | Represents the atmospheric pressure difference between the Icelandic Low and the Azores High.                                         |
+|                                                     |                  |                                                                                                                                       |
+|                                                     | Mean: 0.003      | Negative Phases associated with snowier winters in New England.                                                                       |
++-----------------------------------------------------+------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+
+These teleconnection patterns do not operate in isolation but interact with one another to produce the final winter weather outcome. For example, the combination of a negative NAO and negative AO can produce particularly snowy winters in New England, while a positive PNA combined with La Niña conditions can reinforce cold and snowy patterns also (Cohen et al., 2020). Understanding these indices and their interactions provides critical context for seasonal forecasting and helps explain the considerable year-to-year variability in New England snowfall totals.
+
+The ONI and PNA are closely related off of the West coast, not just in geography, but also in delivering the energy to the jet stream that allows these snow storms to form. The PNA's influence on New England snowfall operates through its effects on both temperature patterns and storm track positioning, making it valuable in seasonal forecasting frameworks for winter weather in the region, while the ONI provides more limited information about seasonal snowfall in New England. Similarly, off to our North and Northeast, the AO and NAO interact to dampen or exaggerate the effects of each other. When the AO is in a positive phase, the cold air necessary for frequent winter storms is locked too far north to affect us New Englanders, but when it enters a negative phase, troughs of low pressure can carve their way farther south. Research showed that the NAO showed a particularly strong correlations with winter temperature and precipitation variability across the Northeast, making it one of the most important predictors for seasonal snowfall forecasting in the region. While I did see the correlation present in my dataset, the NAO did not seem to have as much effect on my models as was expected.
+
+# Results
+
+The result was less than desirable. With only 73 data points to fit a model to, it was difficult to identify any real patterns in the data or influences of the variables. All of the variables available for prediction prior to the winter season that we explored were weakly correlated to the number of snow days we would expect to experience that winter season (see Appendix). Even though large amounts of snow in November or a high average temperature in December are unusual, they are not predictors of what will occur over the entire winter season.
+
+More consequential to our analysis should be various climate indices that describe the state of the atmosphere that comprise the system that delivers our weather patterns. These indices did show some correlations, particularly the Arctic Oscillation and the North Alantic Oscillation. Both of these drivers of weather patterns were explored, but did not work well together. The Atlantic Oscillation was chosen to be included in the base model for its stronger correlation to the count of snow days in a season. Our base model with coefficients was:
 
 $$
-+ 0.04 \cdot \mathrm{N} - 0.12 \cdot \mathrm{NE} + 0.34 \cdot \mathrm{NW} + 0.57 \cdot \mathrm{S}+0.39 \cdot \mathrm{SE} + 0.78 \cdot \mathrm{SW} + 0.60 \cdot \mathrm{W}
+log(\hat{y}) =  0.88 - 0.36 \cdot \mathrm{Arctic~Oscillation}
 $$
 
+This model is heading in the right direction, but is clearly incomplete. With the potential range of the Arctic Oscillation in our dataset, we are only predicting between 1.5 and 3.5 snow days per year, which does not cover our full range of snow days existing in our dataset (0-5, with an outlier of 7). Two directions were explored. The first was to fully depend on the climate indices. By modeling the interaction between the Pacific patterns and between the Arctic/Atlantic patterns, we obtained the formula:
 
+$$
+log(\hat{y}) =  0.805 - 0.32 \cdot \mathrm{AO} + 0.1 \cdot \mathrm{NAO} +0.02 \cdot \mathrm{ONI} -0.17 \cdot \mathrm{PNA} + 0.16\cdot \mathrm{AO}\cdot \mathrm{NAO} + 0.14\cdot \mathrm{ONI}\cdot \mathrm{PNA}
+$$
 
-Discussion and Conclusions
-
-
-Appendix
-
-(0) Summary Statistics:
+This model fell short of predictions, again not fully explaining the range of possible snow days. The model is not sure of what to predict, and therefore falls closer to the mean to minimize errors and to maximize our adjusted R\^2. The AIC score was 278. This model was only able to explain about 17% of the variance in the data set.
 
 <center>
 
-{{< embed "project3_analysis.qmd#label_name" >}}
+{{< embed "Project3_analysis.qmd#model fit climate indices" >}}
 
-<\center>
+\<\center\>
+
+Searching for a model with better predictive power, I chose to explore the preseason metrics I had collected in aggregate from the year leading up to the winter season. I maintained the influence of the Arctic Oscillation, and added one preseason metric at a time, checking drop-in deviance each time to make sure the model was improving each iteration of the process. I ultimately found the model:
+
+$$
+log(\hat{y}) =  1.02 - 0.82 \cdot \mathrm{AO} - 0.01 \cdot \mathrm{November~Snow~Total} - 0.05 \cdot \mathrm{November~Average~Temp} 
+\\ +0.1 \cdot \mathrm{Daily~Temp~Range~Preseason} -0.02 \cdot \mathrm{AO}\cdot \mathrm{December~Average~Temp}
+$$
+
+This model performed very poorly as well, only able to explain less than 16% of the variance in our data. And with an AIC of 284, it performed slightly worse by that metric than our model based on our climate indices. The drop-in deviance compared to our base model was quite a bit better, coming in at 0.80, enough to choose this model even though our evaluation metrics for our model conflict.
+
+<center>
+
+{{< embed "Project3_analysis.qmd#model fit preseason metrics" >}}
+
+\<\center\>
+
+After choosing the model based on the preseason metrics, negative binomal regression was also performed. The results matched the Poisson regression don on the same model. The reason for this is that there is no overdispersion in the count of snow days per winter season. The number of snow days followed the Poisson distribution perfectly, and our experiment running negative binomial regression and obtaining a $\theta$ over 24, 000 confirmed that these models converged to the same result.
+
+<center>
+
+{{< embed "Project3_analysis.qmd#snow days per season" >}}
+
+\<\center\>
+
+# Discussion and Conclusions
+
+During the research phase, I found that nor'easters follow a Poisson distribution of about 1.5 per season. Defining a snow day as any day with over $4"$ of snow or wind chills reaching below $-20^\circ$, snow day frequency followed a nearly perfect Poisson distribution as well. While it was hypothesized that the interaction of the negative phases of the North Atlantic Oscillation and the Arctic Oscillation would yield a higher number of snow days than winters with only one or neither in the negative phase, models that investigated this interaction did not yield any meaningful improvement in capturing the residual error of the data fit. Backcasting did offer better results, but were overfit and would likely not yield accurate predictions of new data.
+
+Weather forecasting is wildly complicated. Predictions beyond a few weeks rarely hold accuracy. Trying to predict an occurrence of weather events over an entire winter season is a nearly impossible task. While three month running averages of pertinent climate indices were lightly correlated to the number of snow days we could expect, preseason averages offered almost no insight. And even those indices that drive seasonal weather patterns shifted and evolved over time so that they were likely not helpful in forecasting the latter half of winter, which is when most significant snow storms historically happen. And even if we could accurately count the number of snow storms that would close down school, we would still need to predict how many of them land on shool days; significant snow that falls on a weekend or a holiday would not result in a snow day. And then we have to account for the mistakes that will inevitably be made in making the decision to shut down shcool. Undoubtedly, each year school will be shut down for a forecast snowstorm that never materializes. And sometimes, storms will overperform and schools will remain open when they should have closed. There is too much unpredictability and uncertainty that goes into calling a snow day. If we are looking for predictions for the number of snow days in a winter season, it is best to guess the mean, which is about $2.5$ snow days for the Spring semester. Since the occurrence of snow days is so perfectly Poisson distributed, if we need an interval, we can add and subtract the variance, which was roughly $2.9$ days.
+
+#Works Cited
+
+Cohen et al. (2020). Divergent consensuses on Arctic amplification influence on midlatitude severe winter weather. Nature Climate Change, 10(8), 20–29. https://doi.org/10.1038/s41558-019-0662-y
+
+Glantz, M. H., & Ramirez, I. J. (2020). Reviewing the Oceanic Niño Index (ONI) to enhance societal readiness for El Niño's impacts. International Journal of Disaster Risk Science, 11, 394–403. https://doi.org/10.1007/s13753-020-00275-w
+
+Google. (2024). Gemini (Flash 3) \[Large language model\]. https://gemini.google.com
+
+Irisarri, J. G. N., Texeira, M., Harris, P., Gundel, P. E., & Collins, A. L. (2026). North Atlantic Oscillation modulates long-term ANPP dynamics via precipitation or temperature, depending on soil nutrient levels. Agricultural and Forest Meteorology, 376, Article 110931. https://doi.org/10.1016/j.agrformet.2025.110931
+
+Karvetski, C., Lund, R. B., & Parisi, F. (2009). A statistical study of extreme nor'easter snowstorms. Involve, a Journal of Mathematics, 2(3), 251–270.
+
+Leathers, D. J., Yarnal, B., & Palecki, M. A. (1991). The Pacific/North American teleconnection pattern and United States climate. Part I: Regional temperature and precipitation associations. Journal of Climate, 4(5), 517–528.
+
+National Oceanic and Atmospheric Administration, Climate Prediction Center. (2024). Arctic Oscillation (AO) monthly index. https://www.cpc.ncep.noaa.gov/products/precip/CWlink/daily_ao_index/monthly.ao.index.b50.current.ascii
+
+National Oceanic and Atmospheric Administration, Climate Prediction Center. (2024). North Atlantic Oscillation (NAO) monthly index. https://www.cpc.ncep.noaa.gov/products/precip/CWlink/pna/norm.nao.monthly.b5001.current.ascii
+
+National Oceanic and Atmospheric Administration, Climate Prediction Center. (2024). Oceanic Niño Index (ONI). https://www.cpc.ncep.noaa.gov/data/indices/oni.ascii.txt
+
+National Oceanic and Atmospheric Administration, Climate Prediction Center. (2024). Pacific/North American (PNA) teleconnection pattern monthly index. https://www.cpc.ncep.noaa.gov/products/precip/CWlink/pna/norm.pna.monthly.b5001.current.ascii
+
+Open-Meteo. (December 2025). Historical weather API: Fitchburg, MA daily data. https://open-meteo.com
+
+# Appendix
+
+1.  November Comparisons:
+
+```         
+<center>
+```
+
+{{< embed "Project3_analysis.qmd#november metrics" >}}
+
+\<\center\>
+
+2.  December Comparisons:
+
+<center>
+
+{{< embed "Project3_analysis.qmd#december metrics" >}}
+
+\<\center\>
+
+3.  Non Winter Metrics:
+
+<center>
+
+{{< embed "Project3_analysis.qmd#preseason indices" >}}
+
+\<\center\>
+
+4.  Climate Index Comparisons
+
+<center>
+
+{{< embed "Project3_analysis.qmd#climate indices" >}}
+
+\<\center\>
