@@ -1,6 +1,6 @@
 ---
 title: "Project3_analysis"
-author: "Evan Pritchard
+author: "Evan Pritchard"
 format: html
 ---
 

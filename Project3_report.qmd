@@ -55,7 +55,7 @@ Average temperature for out of winter season was not considered due to its low v
 |                  | Mean: 2.83in       |                                                                                                                  |
 +------------------+--------------------+------------------------------------------------------------------------------------------------------------------+
 
-: And similarly, these December Meterics were explored:
+And similarly, these December metrics were explored:
 
 +--------------------+---------------------+------------------------------------------------------------------------------------------------------------------+
 | Variable           | Range in Dataset    | Description                                                                                                      |
@@ -139,14 +139,17 @@ Searching for a model with better predictive power, I chose to explore the prese
 
 $$
 log(\hat{y}) =  1.02 - 0.82 \cdot \mathrm{AO} - 0.01 \cdot \mathrm{November~Snow~Total} - 0.05 \cdot \mathrm{November~Average~Temp} 
-\\ +0.1 \cdot \mathrm{Daily~Temp~Range~Preseason} -0.02 \cdot \mathrm{AO}\cdot \mathrm{December~Average~Temp}
+$$
+
+$$
++0.1 \cdot \mathrm{Daily~Temp~Range~Preseason} -0.02 \cdot \mathrm{AO}\cdot \mathrm{December~Average~Temp}
 $$
 
 This model performed very poorly as well, only able to explain less than 16% of the variance in our data. And with an AIC of 284, it performed slightly worse by that metric than our model based on our climate indices. The drop-in deviance compared to our base model was quite a bit better, coming in at 0.80, enough to choose this model even though our evaluation metrics for our model conflict.
 
 <center>
 
-{{< embed "Project3_analysis.qmd#model fit preseason metrics" >}}
+{{< embed "Project3_analysis.qmd#model fit preseason predictors" >}}
 
 \<\center\>
 
@@ -192,13 +195,11 @@ Open-Meteo. (December 2025). Historical weather API: Fitchburg, MA daily data. h
 
 1.  November Comparisons:
 
-```         
 <center>
-```
 
 {{< embed "Project3_analysis.qmd#november metrics" >}}
 
-\<\center\>
+</center>
 
 2.  December Comparisons:
 
@@ -212,7 +213,7 @@ Open-Meteo. (December 2025). Historical weather API: Fitchburg, MA daily data. h
 
 <center>
 
-{{< embed "Project3_analysis.qmd#preseason indices" >}}
+{{< embed "Project3_analysis.qmd#preseason metrics" >}}
 
 \<\center\>
 
