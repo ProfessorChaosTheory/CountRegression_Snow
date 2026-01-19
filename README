@@ -1,2 +1,107 @@
-Project 3: Count Regression for the number of snow days in a winter season for Fitchburg
+# Predicting Snow Days in Fitchburg, MA: A Count Regression Approach
 
+## Overview
+This project uses Poisson regression to predict the number of school-closing snow days for the remainder of winter (December 22 - April 30) in Fitchburg, Massachusetts, using only meteorological and climatological information available through December 21st.
+
+## Project Goal
+Develop a seasonal forecasting model that enables schools, municipalities, and emergency services to anticipate winter severity and allocate resources effectively, using pre-winter and early-winter indicators.
+
+## Dataset
+- **Source**: Daily weather data for Fitchburg, MA (1950-2024) + Climate teleconnection indices from NOAA
+- **Time Period**: 74 winter seasons (1951-2024)
+
+## Snow Day Definition
+A day qualifies as a "snow day" if it meets either criterion:
+- 4+ inches of snowfall, OR
+- Apparent temperature minimum below -10°F
+
+These thresholds approximate school-closing conditions in the region.
+
+## Key Variables
+
+**Response Variable:**
+- `snow_days_count`: Number of snow days from December 22 through April 30
+
+**Predictor Variables (all measured through December 21):**
+
+*Pre-Season Conditions (May 1 - December 21):*
+- Total rainfall and snowfall
+- Average temperature and temperature range
+- Total precipitation
+
+*November Metrics:*
+- Average temperature and total snowfall
+- Temperature trend (early vs. late month)
+
+*December Metrics (through Dec 21):*
+- Average temperature and total snowfall
+- Days with measurable snow
+- Temperature trend
+
+*Climate Teleconnection Indices (October-December):*
+- **ONI** (Oceanic Niño Index): El Niño/La Niña indicator
+- **NAO** (North Atlantic Oscillation): Controls East Coast storm tracks
+- **AO** (Arctic Oscillation): Influences cold air outbreaks
+- **PNA** (Pacific/North American Pattern): Affects temperature patterns
+
+## Methodology
+- **Model Type**: Poisson Regression (count data with Poisson-distributed events)
+- **Feature Selection**: Based on correlation analysis and meteorological theory
+- **Model Evaluation**: Mean Absolute Error (MAE), Root Mean Squared Error (RMSE), Pseudo R²
+
+## Model Performance
+- **MAE**: [1.21] snow days
+- **RMSE**: [1.54] snow days
+- **Pseudo R²**: ~0.17
+- Result is reasonable given the inherent unpredictability of winter weather 3-4 months in advance
+
+## Key Findings
+- December snowfall patterns provide strongest signal for remainder of winter
+- Arctic Oscillation (AO) shows significant negative correlation with snow days
+- November temperature trends contribute meaningful predictive value
+- Pre-season snowfall shows modest but consistent relationship
+- Model performance aligns with operational seasonal forecasting capabilities
+
+## Scientific Context
+This work builds on established research showing:
+- Nor'easter snowstorms follow Poisson distribution (Karvetski et al., 2009)
+- NAO/AO strongly influence Northeast winter weather (Leathers et al., 1991)
+- Arctic amplification affects mid-latitude winter patterns (Cohen et al., 2020)
+
+## Technologies Used
+- **R** (4.4.0)
+- **tidyverse** - Data manipulation and visualization
+- **tidymodels** - Model building and evaluation
+- **MASS** - Negative binomial regression capabilities
+
+## Climate Data Sources
+- ONI, NAO, AO, PNA indices from NOAA Climate Prediction Center
+- Historical weather data from Open-Meteo API
+
+## How to Run
+1. Clone the repository
+2. Install required packages: `install.packages(c("tidyverse", "tidymodels", "MASS", "lubridate"))`
+3. Use provided `climate_data.csv`)
+4. Run `Project3_analysis.R` to process weather data
+5. Open and render `Project3_report.qmd` for complete analysis
+
+## Future Improvements
+- Incorporate additional climate indices (MJO, EPO)
+- Explore ensemble modeling approaches
+- Add spatial analysis for regional variations
+- Develop operational forecasting dashboard
+
+## Author
+Evan Pritchard
+- Dual Degree in Mathematics and Computer Science, Fitchburg State University
+- parachuteriggerwf4@gmail.com
+- github.com/ProfessorChaosTheory
+
+## Acknowledgments
+- Climate data from NOAA Climate Prediction Center
+- Weather data from Open-Meteo
+- Analysis assisted by Claude AI (Anthropic) and Google Gemini
+- Project completed as part of [course name/independent study]
+
+## References
+See `final_report.qmd` for complete bibliography.
