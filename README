@@ -100,8 +100,5 @@ Evan Pritchard
 ## Acknowledgments
 - Climate data from NOAA Climate Prediction Center
 - Weather data from Open-Meteo
-- Analysis assisted by Claude AI (Anthropic) and Google Gemini
-- Project completed as part of [course name/independent study]
-
-## References
-See `final_report.qmd` for complete bibliography.
+- Data gathering and wrangling assisted by Claude AI (Anthropic) and Google Gemini
+- Project completed as part of MATH 3003 - Advanced Statistics
